@@ -8,7 +8,6 @@
         "@base-ui/react": "^1.5.0",
         "@better-auth/prisma-adapter": "^1.6.11",
         "@prisma/adapter-neon": "^7.8.0",
-        "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "@tanstack/react-query": "^5.100.14",
         "better-auth": "^1.6.11",
@@ -16,7 +15,6 @@
         "clsx": "^2.1.1",
         "lucide-react": "^1.16.0",
         "next": "16.2.6",
-        "pg": "^8.21.0",
         "prisma": "^7.8.0",
         "react": "19.2.4",
         "react-dom": "19.2.4",
@@ -30,7 +28,6 @@
         "@tailwindcss/postcss": "^4",
         "@types/bun": "^1.3.14",
         "@types/node": "^20",
-        "@types/pg": "^8.20.0",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "eslint": "^9",
@@ -330,8 +327,6 @@
     "@opentelemetry/semantic-conventions": ["@opentelemetry/semantic-conventions@1.41.1", "", {}, "sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA=="],
 
     "@prisma/adapter-neon": ["@prisma/adapter-neon@7.8.0", "", { "dependencies": { "@neondatabase/serverless": ">0.6.0 <2", "@prisma/driver-adapter-utils": "7.8.0", "postgres-array": "3.0.4" } }, "sha512-9MoOjRuY53sQNyji87u1NivsK0tIacoUE3PqTxdG95b7ORn1pzwribH2z83j4Vh3eb9nQ/UC+MTfVW7jCFnXlA=="],
-
-    "@prisma/adapter-pg": ["@prisma/adapter-pg@7.8.0", "", { "dependencies": { "@prisma/driver-adapter-utils": "7.8.0", "@types/pg": "^8.16.0", "pg": "^8.16.3", "postgres-array": "3.0.4" } }, "sha512-ygb3UkerK3v8MDpXVgCISdRNDozpxh6+JVJgiIGbSr5KBgz10LLf5ejUskPGoXlsIjxsOu6nuy1JVQr2EKGSlg=="],
 
     "@prisma/client": ["@prisma/client@7.8.0", "", { "dependencies": { "@prisma/client-runtime-utils": "7.8.0" }, "peerDependencies": { "prisma": "*", "typescript": ">=5.4.0" }, "optionalPeers": ["prisma", "typescript"] }, "sha512-HFp3Dawv/3sU3JtlPha90IB+48lS7zHiH4LKZPjmcE8YH5P9DOXGPvo8dqOtO7MqLDd1p2hOWMcFlRT1DMblHw=="],
 
