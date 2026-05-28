@@ -1,5 +1,8 @@
-import { PempekBusinessApp } from "@/components/pempek-business-app";
+import { getBusinessDashboard } from "@/actions/business/dashboard"
+import { PempekWorkspace } from "@/components/pempek-business-app"
 
-export default function Home() {
-  return <PempekBusinessApp />;
+export default async function Home() {
+  const dashboard = await getBusinessDashboard()
+
+  return <PempekWorkspace initialDashboard={dashboard} />
 }
