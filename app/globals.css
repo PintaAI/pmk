@@ -128,3 +128,86 @@
     @apply font-sans;
   }
 }
+
+.thermal-receipt {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .thermal-receipt,
+  .thermal-receipt * {
+    visibility: visible;
+  }
+
+  .thermal-receipt {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 80mm;
+    padding: 4mm;
+    background: white;
+    color: black;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .thermal-receipt h1 {
+    margin: 0 0 2mm;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .thermal-receipt p {
+    margin: 0;
+  }
+
+  .thermal-receipt__center {
+    text-align: center;
+  }
+
+  .thermal-receipt__line {
+    margin: 3mm 0;
+    border-top: 1px dashed black;
+  }
+
+  .thermal-receipt__item {
+    margin-bottom: 2mm;
+  }
+
+  .thermal-receipt__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 3mm;
+  }
+
+  .thermal-receipt__row span:first-child {
+    min-width: 0;
+  }
+
+  .thermal-receipt__row span:last-child {
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .thermal-receipt__muted {
+    color: black;
+    font-size: 9px;
+  }
+
+  .thermal-receipt__total {
+    font-size: 12px;
+    font-weight: 700;
+  }
+}

@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import type { CartItem, EntryValues, PriceKind } from "@/components/form/types"
+import type { CartItem, CheckoutPayload, EntryValues, PriceKind } from "@/components/form/types"
 import { priceKindLabels } from "@/components/form/constants"
 import { mapSale } from "./mappers"
 import { refreshHome, toNumber } from "./utils"
@@ -43,7 +43,8 @@ export async function saveSale(values: EntryValues, id?: string) {
   refreshHome()
 }
 
-export async function checkoutCart(cart: CartItem[]) {
+export async function checkoutCart(payload: CheckoutPayload) {
+  const { cart, paymentMethod, amountPaid } = payload
   const requestedItems = cart.filter((item) => item.quantity > 0)
 
   if (requestedItems.length === 0) return
@@ -79,14 +80,24 @@ export async function checkoutCart(cart: CartItem[]) {
     if (saleItems.length === 0) return
     saleItemsCount = saleItems.length
 
+    const total = saleItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
+    const change = amountPaid > total ? amountPaid - total : 0
+
     await tx.sale.create({
       data: {
         name: saleItems
           .map(({ product, priceKind, quantity }) => `${product.name} x${quantity} (${priceKindLabels[priceKind]})`)
           .join(", "),
         quantity: saleItems.reduce((total, item) => total + item.quantity, 0),
-        amount: saleItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0),
-        note: `Checkout kasir (${[...new Set(saleItems.map((item) => priceKindLabels[item.priceKind]))].join(", ")})`,
+        amount: total,
+        note: [
+          `Checkout kasir (${[...new Set(saleItems.map((item) => priceKindLabels[item.priceKind]))].join(", ")})`,
+          `Payment: ${paymentMethod.toUpperCase()}`,
+          amountPaid > 0 ? `Paid: ${amountPaid}` : null,
+          change > 0 ? `Change: ${change}` : null,
+        ]
+          .filter(Boolean)
+          .join(" | "),
         items: {
           create: saleItems.map((item) => ({
             productId: item.product.id,
@@ -108,7 +119,7 @@ export async function checkoutCart(cart: CartItem[]) {
     )
   })
 
-  await logActivity("sale", "checked_out", `Checked out cart (${saleItemsCount} items)`)
+  await logActivity("sale", "checked_out", `Checked out cart (${saleItemsCount} items) — ${paymentMethod}`)
   refreshHome()
 }
 

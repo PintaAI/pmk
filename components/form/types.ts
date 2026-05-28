@@ -134,6 +134,8 @@ export type EntryValues = {
   outputs: OutputForm[]
 }
 
+export type PaymentMethod = "cash" | "qris" | "transfer" | "ewallet"
+
 export type CartItem = {
   productId: string
   priceKind: PriceKind
@@ -144,6 +146,12 @@ export type CartRow = {
   product: ProductRecord
   priceKind: PriceKind
   quantity: number
+}
+
+export type CheckoutPayload = {
+  cart: CartItem[]
+  paymentMethod: PaymentMethod
+  amountPaid: number
 }
 
 export type FormConfig = {

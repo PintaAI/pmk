@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
 import { CartDrawer } from "@/components/cart"
+import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
 import {
   BottomNav,
   HomeTabContent,
@@ -17,7 +18,7 @@ import {
   viewConfigs,
 } from "@/components/tabs"
 import { RecordDrawer } from "@/components/form/record-drawer"
-import type { CartItem, EditableRecord, EntryValues, PriceKind, RecordKind, ViewKey } from "@/components/form/types"
+import type { CartItem, CheckoutPayload, EditableRecord, EntryValues, PaymentMethod, PriceKind, RecordKind, ViewKey } from "@/components/form/types"
 import { getCartRows, getCartSummary } from "@/components/form/helpers"
 import { NewProductDialog } from "@/components/form/new-product-dialog"
 import { getDrawerKinds, type BusinessMetrics } from "@/components/form/record-helpers"
@@ -51,6 +52,8 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
   const [inventoryTab, setInventoryTab] = React.useState<InventoryContentTab>("inventory")
   const [isProductDialogOpen, setIsProductDialogOpen] = React.useState(false)
   const [productDialogKey, setProductDialogKey] = React.useState(0)
+  const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = React.useState(false)
+  const [receiptToPrint, setReceiptToPrint] = React.useState<ThermalReceiptData | null>(null)
 
   const refreshDashboard = () => {
     startTransition(() => {
@@ -207,12 +210,29 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
     })
   }
 
-  const submitCart = async () => {
-    if (cart.length === 0) {
-      return
-    }
+  const submitCart = () => {
+    if (cart.length === 0) return
+    setIsCartDrawerOpen(false)
+    setIsCheckoutDialogOpen(true)
+  }
 
-    checkoutMutation.mutate(cart)
+  const handleCheckoutConfirm = (paymentMethod: PaymentMethod, amountPaid: number) => {
+    setIsCheckoutDialogOpen(false)
+    const receipt: ThermalReceiptData = {
+      id: crypto.randomUUID().slice(0, 8).toUpperCase(),
+      rows: cartRows,
+      total: getCartSummary(cartRows).total,
+      paymentMethod,
+      amountPaid,
+      createdAt: new Date().toISOString(),
+    }
+    const payload: CheckoutPayload = { cart, paymentMethod, amountPaid }
+    setReceiptToPrint(receipt)
+    checkoutMutation.mutate(payload, {
+      onSuccess: () => {
+        window.setTimeout(() => window.print(), 150)
+      },
+    })
   }
 
   const openNewRecord = (kind = view.defaultKind) => {
@@ -368,6 +388,16 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
         onClearCart={() => setCart([])}
         onOpenChange={setIsCartDrawerOpen}
       />
+
+      <CheckoutDialog
+        open={isCheckoutDialogOpen}
+        cartRows={cartRows}
+        total={getCartSummary(cartRows).total}
+        onOpenChange={setIsCheckoutDialogOpen}
+        onConfirm={handleCheckoutConfirm}
+      />
+
+      <ThermalReceipt receipt={receiptToPrint} />
     </main>
   )
 }
