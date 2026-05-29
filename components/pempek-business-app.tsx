@@ -59,13 +59,22 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = React.useState(false)
   const [receiptToPrint, setReceiptToPrint] = React.useState<ThermalReceiptData | null>(null)
   const receiptToRetry = React.useRef<EscPosReceipt | null>(null)
+  const shouldRefreshAfterPrint = React.useRef(false)
   const { printState, printViaBluetooth, selectAndPrint, reset: resetBtPrint } = useBtPrint()
 
-  const refreshDashboard = () => {
+  const refreshDashboard = React.useCallback(() => {
     startTransition(() => {
       router.refresh()
     })
-  }
+  }, [router])
+
+  const closeBtPrintDialog = React.useCallback(() => {
+    resetBtPrint()
+    if (shouldRefreshAfterPrint.current) {
+      shouldRefreshAfterPrint.current = false
+      refreshDashboard()
+    }
+  }, [refreshDashboard, resetBtPrint])
 
   const view = viewConfigs[activeView]
   const needsProducts = activeView === "sales" || activeView === "stock" || (isDrawerOpen && activeKind === "production")
@@ -134,7 +143,6 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       ])
       setCart([])
       setIsCartDrawerOpen(false)
-      refreshDashboard()
     },
   })
 
@@ -252,8 +260,10 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
     checkoutMutation.mutate(payload, {
       onSuccess: () => {
         if (isNativeApp()) {
+          shouldRefreshAfterPrint.current = true
           printViaBluetooth(escpos)
         } else {
+          refreshDashboard()
           window.setTimeout(() => window.print(), 150)
         }
       },
@@ -431,7 +441,7 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
             selectAndPrint(address, receiptToRetry.current)
           }
         }}
-        onClose={resetBtPrint}
+        onClose={closeBtPrintDialog}
         onRetry={() => {
           const receipt = receiptToRetry.current
           if (receipt) {

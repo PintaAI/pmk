@@ -13,8 +13,13 @@ type Props = {
 export function BtPrintDialog({ state, onSelect, onClose, onRetry }: Props) {
   if (state.phase === "idle") return null
 
+  const canCloseFromBackdrop = state.phase === "done" || state.phase === "error"
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      onClick={canCloseFromBackdrop ? onClose : undefined}
+    >
       <div
         className="w-full max-w-md rounded-t-2xl bg-white p-6 shadow-xl animate-in slide-in-from-bottom"
         onClick={(e) => e.stopPropagation()}
@@ -60,6 +65,12 @@ export function BtPrintDialog({ state, onSelect, onClose, onRetry }: Props) {
                   </button>
                 ))}
               </div>
+              <button
+                onClick={onClose}
+                className="rounded-lg border border-slate-200 px-6 py-2 text-sm font-medium text-slate-700"
+              >
+                Batal
+              </button>
             </>
           )}
 
