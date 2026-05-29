@@ -8,7 +8,7 @@ import { CartDrawer } from "@/components/cart"
 import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
 import { useBtPrint, BtPrintDialog } from "@/components/printer"
 import { isNativeApp } from "@/components/printer"
-import type { EscPosReceipt } from "@/lib/escpos-print"
+import { formatEscPosCurrency, type EscPosReceipt } from "@/lib/escpos-print"
 import {
   BottomNav,
   HomeTabContent,
@@ -238,12 +238,12 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       subtitle2: `#${receipt.id}`,
       items: receipt.rows.map(({ product, priceKind, quantity }) => ({
         left: `${product.name} ${quantity}x`,
-        right: formatCurrency(getProductPrice(product, priceKind) * quantity),
+        right: formatEscPosCurrency(getProductPrice(product, priceKind) * quantity),
       })),
-      total: formatCurrency(receipt.total),
+      total: formatEscPosCurrency(receipt.total),
       paymentMethod: paymentMethodLabels[paymentMethod],
-      amountPaid: formatCurrency(amountPaid),
-      change: formatCurrency(Math.max(0, amountPaid - receipt.total)),
+      amountPaid: formatEscPosCurrency(amountPaid),
+      change: formatEscPosCurrency(Math.max(0, amountPaid - receipt.total)),
       footer: "Terima kasih",
     }
     const payload: CheckoutPayload = { cart, paymentMethod, amountPaid }

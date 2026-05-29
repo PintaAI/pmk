@@ -26,6 +26,20 @@ export type EscPosReceipt = {
 
 const encoder = new TextEncoder()
 
+export function formatEscPosCurrency(value: number): string {
+  return `Rp ${new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 0,
+  }).format(value)}`
+}
+
+function sanitizeText(s: string): string {
+  return s
+    .replace(/\u00a0/g, " ")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x00-\x7F]/g, "?")
+}
+
 function bytes(...list: number[][]): number[] {
   return list.flat()
 }
@@ -39,7 +53,7 @@ function gsCmd(c: number, ...args: number[]): number[] {
 }
 
 function text(s: string): number[] {
-  return Array.from(encoder.encode(s))
+  return Array.from(encoder.encode(sanitizeText(s)))
 }
 
 function dashedLine(width = 32): number[] {
