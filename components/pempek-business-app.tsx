@@ -6,6 +6,9 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 
 import { CartDrawer } from "@/components/cart"
 import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
+import { useBtPrint, BtPrintDialog } from "@/components/printer"
+import { isNativeApp } from "@/components/printer"
+import type { EscPosReceipt } from "@/lib/escpos-print"
 import {
   BottomNav,
   HomeTabContent,
@@ -19,7 +22,8 @@ import {
 } from "@/components/tabs"
 import { RecordDrawer } from "@/components/form/record-drawer"
 import type { CartItem, CheckoutPayload, EditableRecord, EntryValues, PaymentMethod, PriceKind, RecordKind, ViewKey } from "@/components/form/types"
-import { getCartRows, getCartSummary } from "@/components/form/helpers"
+import { formatCurrency, getCartRows, getCartSummary, getProductPrice } from "@/components/form/helpers"
+import { paymentMethodLabels } from "@/components/form/constants"
 import { NewProductDialog } from "@/components/form/new-product-dialog"
 import { getDrawerKinds, type BusinessMetrics } from "@/components/form/record-helpers"
 import { HeroSummary } from "@/components/hero-summary"
@@ -54,6 +58,8 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
   const [productDialogKey, setProductDialogKey] = React.useState(0)
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = React.useState(false)
   const [receiptToPrint, setReceiptToPrint] = React.useState<ThermalReceiptData | null>(null)
+  const receiptToRetry = React.useRef<EscPosReceipt | null>(null)
+  const { printState, printViaBluetooth, selectAndPrint, reset: resetBtPrint } = useBtPrint()
 
   const refreshDashboard = () => {
     startTransition(() => {
@@ -226,11 +232,30 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       amountPaid,
       createdAt: new Date().toISOString(),
     }
+    const escpos: EscPosReceipt = {
+      title: "Pempek Kasir",
+      subtitle1: new Date(receipt.createdAt).toLocaleString("id-ID"),
+      subtitle2: `#${receipt.id}`,
+      items: receipt.rows.map(({ product, priceKind, quantity }) => ({
+        left: `${product.name} ${quantity}x`,
+        right: formatCurrency(getProductPrice(product, priceKind) * quantity),
+      })),
+      total: formatCurrency(receipt.total),
+      paymentMethod: paymentMethodLabels[paymentMethod],
+      amountPaid: formatCurrency(amountPaid),
+      change: formatCurrency(Math.max(0, amountPaid - receipt.total)),
+      footer: "Terima kasih",
+    }
     const payload: CheckoutPayload = { cart, paymentMethod, amountPaid }
     setReceiptToPrint(receipt)
+    receiptToRetry.current = escpos
     checkoutMutation.mutate(payload, {
       onSuccess: () => {
-        window.setTimeout(() => window.print(), 150)
+        if (isNativeApp()) {
+          printViaBluetooth(escpos)
+        } else {
+          window.setTimeout(() => window.print(), 150)
+        }
       },
     })
   }
@@ -398,6 +423,22 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       />
 
       <ThermalReceipt receipt={receiptToPrint} />
+
+      <BtPrintDialog
+        state={printState}
+        onSelect={(address) => {
+          if (receiptToRetry.current) {
+            selectAndPrint(address, receiptToRetry.current)
+          }
+        }}
+        onClose={resetBtPrint}
+        onRetry={() => {
+          const receipt = receiptToRetry.current
+          if (receipt) {
+            printViaBluetooth(receipt)
+          }
+        }}
+      />
     </main>
   )
 }
