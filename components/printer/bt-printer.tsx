@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Capacitor } from "@capacitor/core"
 import { BluetoothSerial } from "@ascentio-it/capacitor-bluetooth-serial"
 import { buildEscPosBytes, bytesToBtString, type EscPosReceipt } from "@/lib/escpos-print"
@@ -20,8 +20,18 @@ export type BtPrintState =
   | { phase: "done" }
   | { phase: "error"; message: string }
 
+export type BtPreparedState =
+  | { phase: "idle" }
+  | { phase: "preparing"; deviceName: string }
+  | { phase: "ready"; deviceName: string }
+  | { phase: "failed" }
+
 export function useBtPrint() {
   const [state, setState] = useState<BtPrintState>({ phase: "idle" })
+  const [preparedState, setPreparedState] = useState<BtPreparedState>({ phase: "idle" })
+  const preparedPrinterRef = useRef<BtPrinterDevice | null>(null)
+  const preparePromiseRef = useRef<Promise<boolean> | null>(null)
+  const prepareTokenRef = useRef(0)
 
   const reset = useCallback(() => setState({ phase: "idle" }), [])
 
@@ -48,6 +58,76 @@ export function useBtPrint() {
     window.localStorage.removeItem(SAVED_PRINTER_KEY)
   }, [])
 
+  const writeReceipt = useCallback(async (address: string, receipt: EscPosReceipt) => {
+    const escpos = buildEscPosBytes(receipt)
+    const btString = bytesToBtString(escpos)
+
+    await BluetoothSerial.write({ address, value: btString })
+    await new Promise((r) => setTimeout(r, 500))
+  }, [])
+
+  const disconnectPreparedPrinter = useCallback(async () => {
+    prepareTokenRef.current += 1
+    preparePromiseRef.current = null
+    const printer = preparedPrinterRef.current
+    preparedPrinterRef.current = null
+    setPreparedState({ phase: "idle" })
+
+    if (printer) {
+      await BluetoothSerial.disconnect({ address: printer.address }).catch(() => {})
+    }
+  }, [])
+
+  const prepareBluetoothPrinter = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) return false
+    if (preparedPrinterRef.current) return true
+    if (preparePromiseRef.current) return preparePromiseRef.current
+
+    const savedPrinter = getSavedPrinter()
+    if (!savedPrinter) return false
+
+    const token = prepareTokenRef.current + 1
+    prepareTokenRef.current = token
+    setPreparedState({ phase: "preparing", deviceName: savedPrinter.name })
+
+    const promise = (async () => {
+      try {
+        const permGranted = await BluetoothSerial.checkBluetoothPermissions()
+        if (!permGranted) throw new Error("Bluetooth permission not granted")
+
+        const btState = await BluetoothSerial.isEnabled()
+        if (!btState.enabled) throw new Error("Bluetooth is disabled")
+
+        await BluetoothSerial.connect({ address: savedPrinter.address })
+
+        if (prepareTokenRef.current !== token) {
+          await BluetoothSerial.disconnect({ address: savedPrinter.address }).catch(() => {})
+          return false
+        }
+
+        preparedPrinterRef.current = savedPrinter
+        setPreparedState({ phase: "ready", deviceName: savedPrinter.name })
+        return true
+      } catch {
+        if (prepareTokenRef.current === token) {
+          preparedPrinterRef.current = null
+          preparePromiseRef.current = null
+          forgetSavedPrinter()
+          setPreparedState({ phase: "failed" })
+        }
+
+        return false
+      } finally {
+        if (prepareTokenRef.current === token) {
+          preparePromiseRef.current = null
+        }
+      }
+    })()
+
+    preparePromiseRef.current = promise
+    return promise
+  }, [forgetSavedPrinter, getSavedPrinter])
+
   const connectAndPrint = useCallback(
     async (deviceName: string, address: string, receipt: EscPosReceipt) => {
       setState({ phase: "connecting", deviceName })
@@ -60,11 +140,7 @@ export function useBtPrint() {
 
         setState({ phase: "printing" })
 
-        const escpos = buildEscPosBytes(receipt)
-        const btString = bytesToBtString(escpos)
-
-        await BluetoothSerial.write({ address, value: btString })
-        await new Promise((r) => setTimeout(r, 500))
+        await writeReceipt(address, receipt)
       } finally {
         if (connected) {
           await BluetoothSerial.disconnect({ address }).catch(() => {})
@@ -73,7 +149,7 @@ export function useBtPrint() {
 
       setState({ phase: "done" })
     },
-    [],
+    [writeReceipt],
   )
 
   const printViaBluetooth = useCallback(
@@ -155,6 +231,38 @@ export function useBtPrint() {
     [connectAndPrint, forgetSavedPrinter, getSavedPrinter, savePrinter],
   )
 
+  const printPreparedOrBluetooth = useCallback(
+    async (receipt: EscPosReceipt) => {
+      if (!Capacitor.isNativePlatform()) return
+
+      if (preparePromiseRef.current) {
+        await preparePromiseRef.current
+      }
+
+      const preparedPrinter = preparedPrinterRef.current
+      if (!preparedPrinter) {
+        await printViaBluetooth(receipt)
+        return
+      }
+
+      try {
+        setState({ phase: "printing" })
+        await writeReceipt(preparedPrinter.address, receipt)
+        preparedPrinterRef.current = null
+        setPreparedState({ phase: "idle" })
+        await BluetoothSerial.disconnect({ address: preparedPrinter.address }).catch(() => {})
+        setState({ phase: "done" })
+      } catch {
+        preparedPrinterRef.current = null
+        setPreparedState({ phase: "failed" })
+        forgetSavedPrinter()
+        await BluetoothSerial.disconnect({ address: preparedPrinter.address }).catch(() => {})
+        await printViaBluetooth(receipt)
+      }
+    },
+    [forgetSavedPrinter, printViaBluetooth, writeReceipt],
+  )
+
   const selectAndPrint = useCallback(
     async (address: string, receipt: EscPosReceipt) => {
       try {
@@ -180,7 +288,16 @@ export function useBtPrint() {
     [connectAndPrint, savePrinter, state],
   )
 
-  return { printState: state, printViaBluetooth, selectAndPrint, reset }
+  return {
+    printState: state,
+    preparedState,
+    prepareBluetoothPrinter,
+    printPreparedOrBluetooth,
+    printViaBluetooth,
+    selectAndPrint,
+    reset,
+    disconnectPreparedPrinter,
+  }
 }
 
 /** Returns true if running in native Capacitor (android/ios), not browser. */

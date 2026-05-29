@@ -27,6 +27,7 @@ type CheckoutDialogProps = {
   open: boolean
   cartRows: CartRow[]
   total: number
+  printerStatusLabel?: string
   onOpenChange: (open: boolean) => void
   onConfirm: (paymentMethod: PaymentMethod, amountPaid: number) => void
 }
@@ -35,6 +36,7 @@ export function CheckoutDialog({
   open,
   cartRows,
   total,
+  printerStatusLabel,
   onOpenChange,
   onConfirm,
 }: CheckoutDialogProps) {
@@ -57,6 +59,9 @@ export function CheckoutDialog({
         <DialogHeader>
           <DialogTitle>Pilih pembayaran</DialogTitle>
           <DialogDescription>Total: {formatCurrency(total)}</DialogDescription>
+          {printerStatusLabel && (
+            <p className="text-xs font-medium text-slate-500">{printerStatusLabel}</p>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">

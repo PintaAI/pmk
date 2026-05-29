@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 
 import { CartDrawer } from "@/components/cart"
 import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
-import { useBtPrint, BtPrintDialog } from "@/components/printer"
+import { useBtPrint, BtPrintDialog, type BtPreparedState } from "@/components/printer"
 import { isNativeApp } from "@/components/printer"
 import { formatEscPosCurrency, type EscPosReceipt } from "@/lib/escpos-print"
 import {
@@ -60,7 +60,16 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
   const [receiptToPrint, setReceiptToPrint] = React.useState<ThermalReceiptData | null>(null)
   const receiptToRetry = React.useRef<EscPosReceipt | null>(null)
   const shouldRefreshAfterPrint = React.useRef(false)
-  const { printState, printViaBluetooth, selectAndPrint, reset: resetBtPrint } = useBtPrint()
+  const {
+    printState,
+    preparedState,
+    prepareBluetoothPrinter,
+    printPreparedOrBluetooth,
+    printViaBluetooth,
+    selectAndPrint,
+    reset: resetBtPrint,
+    disconnectPreparedPrinter,
+  } = useBtPrint()
 
   const refreshDashboard = React.useCallback(() => {
     startTransition(() => {
@@ -228,6 +237,16 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
     if (cart.length === 0) return
     setIsCartDrawerOpen(false)
     setIsCheckoutDialogOpen(true)
+    if (isNativeApp()) {
+      prepareBluetoothPrinter()
+    }
+  }
+
+  const handleCheckoutOpenChange = (open: boolean) => {
+    setIsCheckoutDialogOpen(open)
+    if (!open && isNativeApp()) {
+      disconnectPreparedPrinter()
+    }
   }
 
   const handleCheckoutConfirm = (paymentMethod: PaymentMethod, amountPaid: number) => {
@@ -261,7 +280,7 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       onSuccess: () => {
         if (isNativeApp()) {
           shouldRefreshAfterPrint.current = true
-          printViaBluetooth(escpos)
+          printPreparedOrBluetooth(escpos)
         } else {
           refreshDashboard()
           window.setTimeout(() => window.print(), 150)
@@ -428,7 +447,8 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
         open={isCheckoutDialogOpen}
         cartRows={cartRows}
         total={getCartSummary(cartRows).total}
-        onOpenChange={setIsCheckoutDialogOpen}
+        printerStatusLabel={getPrinterStatusLabel(preparedState)}
+        onOpenChange={handleCheckoutOpenChange}
         onConfirm={handleCheckoutConfirm}
       />
 
@@ -468,6 +488,13 @@ function TabHeader({ view }: { view: (typeof viewConfigs)[ViewKey] }) {
       </div>
     </header>
   )
+}
+
+function getPrinterStatusLabel(state: BtPreparedState) {
+  if (state.phase === "preparing") return `Menyiapkan printer ${state.deviceName}...`
+  if (state.phase === "ready") return `Printer siap: ${state.deviceName}`
+  if (state.phase === "failed") return "Printer tersimpan belum siap, pilih manual setelah konfirmasi"
+  return undefined
 }
 
 async function saveEntity(kind: RecordKind, values: EntryValues, id?: string) {
