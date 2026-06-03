@@ -22,17 +22,21 @@ export async function createPurchase(values: EntryValues) {
 
   if (purchaseItems.length === 0) return
 
+  let purchaseId: string | undefined
+  const amount = purchaseItems.reduce((total, item) => total + item.quantity * item.price, 0)
+
   await prisma.$transaction(async (tx) => {
-    await tx.purchase.create({
+    const purchase = await tx.purchase.create({
       data: {
         name: "Belanja bahan baku",
         quantity: purchaseItems.reduce((total, item) => total + item.quantity, 0),
-        amount: purchaseItems.reduce((total, item) => total + item.quantity * item.price, 0),
+        amount,
         note: values.note.trim() || null,
         date: values.date ? new Date(`${values.date}T00:00:00.000Z`) : new Date(),
         items: { create: purchaseItems },
       },
     })
+    purchaseId = purchase.id
 
     await Promise.all(
       purchaseItems.map((item) =>
@@ -54,12 +58,49 @@ export async function createPurchase(values: EntryValues) {
   })
 
   const itemNames = purchaseItems.map((item) => item.name).join(", ")
-  await logActivity("purchase", "created", `Created purchase (${purchaseItems.length} items: ${itemNames})`)
+  await logActivity("purchase", "created", `Belanja dibuat (${purchaseItems.length} item: ${itemNames})`, purchaseId, {
+    amount,
+    quantity: purchaseItems.reduce((total, item) => total + item.quantity, 0),
+    items: purchaseItems.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      unitPrice: item.price,
+      amount: item.quantity * item.price,
+    })),
+  })
   refreshHome()
 }
 
 export async function deletePurchase(id: string) {
-  await prisma.purchase.delete({ where: { id } })
-  await logActivity("purchase", "deleted", `Deleted purchase`, id)
+  const purchase = await prisma.$transaction(async (tx) => {
+    const existingPurchase = await tx.purchase.findUnique({ where: { id }, include: { items: true } })
+    if (!existingPurchase) return null
+
+    await Promise.all(
+      existingPurchase.items.map(async (item) => {
+        const inventoryItem = await tx.inventoryItem.findUnique({ where: { name: item.name } })
+        if (!inventoryItem) return
+
+        await tx.inventoryItem.update({
+          where: { id: inventoryItem.id },
+          data: { quantity: Math.max(0, inventoryItem.quantity - item.quantity) },
+        })
+      })
+    )
+
+    await tx.purchase.delete({ where: { id } })
+    return existingPurchase
+  })
+
+  await logActivity("purchase", "deleted", `Belanja dihapus`, id, purchase ? {
+    amount: purchase.amount,
+    quantity: purchase.quantity,
+    items: purchase.items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      unitPrice: item.price,
+      amount: item.quantity * item.price,
+    })),
+  } : undefined)
   refreshHome()
 }

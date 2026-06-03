@@ -92,6 +92,7 @@ export function valuesFromRecord(record: EditableRecord | null, kind?: RecordKin
     priceDefault: getProductValue(record, "priceDefault"),
     priceReseller: getProductValue(record, "priceReseller"),
     priceOnline: getProductValue(record, "priceOnline"),
+    image: getProductImage(record),
     date: isPurchaseRecord(record) ? record.date : new Date().toISOString().slice(0, 10),
     purchaseItems: isPurchaseRecord(record)
       ? record.items.map((item) => ({
@@ -132,6 +133,14 @@ function getProductValue(record: EditableRecord | null, key: "priceDefault" | "p
   }
 
   return String(record[key])
+}
+
+function getProductImage(record: EditableRecord | null) {
+  if (!record || !("priceDefault" in record)) {
+    return ""
+  }
+
+  return record.image ?? ""
 }
 
 function isPurchaseRecord(record: EditableRecord | null): record is PurchaseRecord {

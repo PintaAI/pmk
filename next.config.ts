@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['jennie-linux.tail2268a1.ts.net'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+    proxyClientMaxBodySize: "4mb",
+  },
   async headers() {
     return [
       {

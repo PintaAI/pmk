@@ -16,10 +16,8 @@ type SectionCardProps = {
   view: ViewConfig
   kind: RecordKind
   records: EditableRecord[]
-  totalRecords: number
   isLimited: boolean
   addLabel?: string
-  editHint?: string
   onAdd: () => void
   onEdit?: (record: EditableRecord) => void
   onDelete: (id: string) => void
@@ -29,21 +27,17 @@ export function SectionCard({
   view,
   kind,
   records,
-  totalRecords,
   isLimited,
   addLabel = "Tambah",
-  editHint = "Tap catatan untuk edit",
   onAdd,
   onEdit,
   onDelete,
 }: SectionCardProps) {
   return (
-    <Card className="bg-white">
+    <Card className="flex max-h-[calc(100svh-15rem)] min-h-0 flex-col bg-white md:max-h-[calc(100svh-10rem)]">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle>{view.title}</CardTitle>
-          </div>
+          <CardTitle>{view.title}</CardTitle>
           <Button
             type="button"
             size="sm"
@@ -55,25 +49,23 @@ export function SectionCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-sm text-slate-500">
-          <span>{totalRecords} catatan</span>
-          <span>{editHint}</span>
-        </div>
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
         {records.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-orange-200 p-5 text-center text-sm text-slate-500">
             Belum ada catatan di bagian ini.
           </div>
         ) : (
-          records.map((record) => (
-            <RecordItem
-              key={record.id}
-              kind={kind}
-              record={record}
-              onEdit={onEdit ? () => onEdit(record) : undefined}
-              onDelete={() => onDelete(record.id)}
-            />
-          ))
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+            {records.map((record) => (
+              <RecordItem
+                key={record.id}
+                kind={kind}
+                record={record}
+                onEdit={onEdit ? () => onEdit(record) : undefined}
+                onDelete={() => onDelete(record.id)}
+              />
+            ))}
+          </div>
         )}
         {isLimited && (
           <p className="text-center text-xs text-slate-500">

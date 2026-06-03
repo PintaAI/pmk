@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import type { ActivityLogRecord } from "@/components/form/types"
+import type { ActivityLogMetadata, ActivityLogRecord } from "@/components/form/types"
 
 export type ActivityAction = "created" | "updated" | "deleted" | "checked_out"
 
@@ -8,6 +8,7 @@ export async function logActivity(
   action: ActivityAction,
   description: string,
   entityId?: string,
+  metadata?: ActivityLogMetadata,
 ) {
   await prisma.activityLog.create({
     data: {
@@ -15,6 +16,7 @@ export async function logActivity(
       action,
       description,
       entityId: entityId ?? null,
+      metadata: metadata ?? undefined,
     },
   })
 }
@@ -25,6 +27,7 @@ function mapActivityLog(log: {
   action: string
   description: string
   entityId: string | null
+  metadata: unknown
   createdAt: Date
 }): ActivityLogRecord {
   return {
@@ -33,8 +36,17 @@ function mapActivityLog(log: {
     action: log.action,
     description: log.description,
     entityId: log.entityId ?? undefined,
+    metadata: parseActivityMetadata(log.metadata),
     createdAt: log.createdAt.toISOString(),
   }
+}
+
+function parseActivityMetadata(metadata: unknown): ActivityLogMetadata | undefined {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return undefined
+  }
+
+  return metadata as ActivityLogMetadata
 }
 
 export async function getRecentActivities(limit = 20): Promise<ActivityLogRecord[]> {

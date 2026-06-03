@@ -23,10 +23,10 @@ export async function saveInventoryItem(values: EntryValues, id?: string) {
 
   if (id) {
     await prisma.inventoryItem.update({ where: { id }, data })
-    await logActivity("inventory", "updated", `Updated inventory item "${data.name}"`, id)
+    await logActivity("inventory", "updated", `Bahan diperbarui "${data.name}"`, id)
   } else {
     const item = await prisma.inventoryItem.create({ data })
-    await logActivity("inventory", "created", `Created inventory item "${data.name}"`, item.id)
+    await logActivity("inventory", "created", `Bahan dibuat "${data.name}"`, item.id)
   }
 
   refreshHome()
@@ -35,6 +35,6 @@ export async function saveInventoryItem(values: EntryValues, id?: string) {
 export async function deleteInventoryItem(id: string) {
   const item = await prisma.inventoryItem.findUnique({ where: { id }, select: { name: true } })
   await prisma.inventoryItem.delete({ where: { id } })
-  await logActivity("inventory", "deleted", `Deleted inventory item "${item?.name ?? id}"`, id)
+  await logActivity("inventory", "deleted", `Bahan dihapus "${item?.name ?? id}"`, id)
   refreshHome()
 }

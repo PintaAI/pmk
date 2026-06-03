@@ -10,6 +10,7 @@ export type ProductRecord = {
   priceDefault: number
   priceReseller: number
   priceOnline: number
+  image?: string
   note?: string
   createdAt: string
   updatedAt: string
@@ -87,12 +88,31 @@ export type ProductionOutputRecord = {
   quantity: number
 }
 
+export type ActivityLogMetadataItem = {
+  name: string
+  quantity?: number
+  unitPrice?: number
+  amount?: number
+}
+
+export type ActivityLogMetadata = {
+  amount?: number
+  amountPaid?: number
+  change?: number
+  paymentMethod?: string
+  quantity?: number
+  items?: ActivityLogMetadataItem[]
+  outputs?: ActivityLogMetadataItem[]
+  ingredients?: ActivityLogMetadataItem[]
+}
+
 export type ActivityLogRecord = {
   id: string
   kind: string
   action: string
   description: string
   entityId?: string
+  metadata?: ActivityLogMetadata
   createdAt: string
 }
 
@@ -128,6 +148,7 @@ export type EntryValues = {
   priceDefault: string
   priceReseller: string
   priceOnline: string
+  image: string
   date: string
   purchaseItems: PurchaseItemForm[]
   ingredients: IngredientForm[]

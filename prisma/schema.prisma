@@ -77,6 +77,7 @@ model Product {
   priceDefault  Int                @default(0)
   priceReseller Int                @default(0)
   priceOnline   Int                @default(0)
+  image         String?
   note          String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -182,6 +183,7 @@ model ActivityLog {
   action      String
   description String
   entityId    String?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   @@index([createdAt])

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BoxesIcon, FactoryIcon, HomeIcon, ReceiptTextIcon, ShoppingCartIcon } from "lucide-react"
+import { BoxesIcon, FactoryIcon, HomeIcon, MonitorIcon, ReceiptTextIcon, ShoppingCartIcon } from "lucide-react"
 import type { RecordKind, ViewKey, ActiveRecordKind } from "@/components/form/types"
 
 export type ViewConfig = {
@@ -26,7 +26,7 @@ export const viewConfigs: Record<ViewKey | "production" | "purchase", ViewConfig
     label: "Kasir",
     title: "Kasir",
     description: "Pilih produk, atur keranjang, lalu checkout.",
-    icon: <ShoppingCartIcon className="size-5" />,
+    icon: <MonitorIcon className="size-5" />,
     defaultKind: "sale",
     include: ["sale"],
   },

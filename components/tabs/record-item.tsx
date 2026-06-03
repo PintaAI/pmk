@@ -1,11 +1,12 @@
 "use client"
 
+import type * as React from "react"
 import { Trash2Icon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formConfigs } from "@/components/form/record-drawer"
 import type { EditableRecord, RecordKind } from "@/components/form/types"
-import { getProductPrice } from "@/components/form/helpers"
+import { cn } from "@/lib/utils"
 
 type RecordItemProps = {
   kind: RecordKind
@@ -15,21 +16,37 @@ type RecordItemProps = {
 }
 
 export function RecordItem({ kind, record, onEdit, onDelete }: RecordItemProps) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onEdit || (event.key !== "Enter" && event.key !== " ")) return
+    event.preventDefault()
+    onEdit()
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="grid size-10 place-items-center rounded-2xl bg-orange-100 text-orange-700">
-        {formConfigs[kind].icon}
-      </div>
-      {onEdit ? (
-        <button type="button" className="min-w-0 flex-1 text-left" onClick={onEdit}>
-          <RecordDetails kind={kind} record={record} />
-        </button>
-      ) : (
-        <div className="min-w-0 flex-1 text-left">
-          <RecordDetails kind={kind} record={record} />
-        </div>
+    <div
+      className={cn(
+        "group flex items-center gap-3 rounded-3xl border border-orange-100 bg-[#fff8ed] p-3 text-left shadow-sm transition hover:border-orange-200 hover:bg-orange-50/80 hover:shadow-md",
+        onEdit && "cursor-pointer"
       )}
-      <Button type="button" variant="ghost" size="icon-sm" onClick={onDelete}>
+      role={onEdit ? "button" : undefined}
+      tabIndex={onEdit ? 0 : undefined}
+      onClick={onEdit}
+      onKeyDown={handleKeyDown}
+    >
+      <RecordAvatar kind={kind} record={record} />
+      <div className="min-w-0 flex-1 space-y-1">
+        <RecordContent kind={kind} record={record} />
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="shrink-0 text-slate-500 hover:bg-white hover:text-red-600"
+        onClick={(event) => {
+          event.stopPropagation()
+          onDelete()
+        }}
+      >
         <Trash2Icon />
         <span className="sr-only">Hapus</span>
       </Button>
@@ -37,46 +54,104 @@ export function RecordItem({ kind, record, onEdit, onDelete }: RecordItemProps) 
   )
 }
 
-function RecordDetails({ kind, record }: { kind: RecordKind; record: EditableRecord }) {
-  return (
-    <>
-      <div className="flex items-center gap-2">
-        <p className="truncate font-medium">{record.name}</p>
-        <Badge variant="secondary">{formConfigs[kind].label}</Badge>
+function RecordAvatar({ kind, record }: { kind: RecordKind; record: EditableRecord }) {
+  const badge = getRecordBadge(kind, record)
+
+  if (kind === "product" && "priceDefault" in record && record.image) {
+    return (
+      <div
+        className="relative size-20 shrink-0 overflow-hidden rounded-2xl bg-cover bg-center bg-orange-100 sm:size-24"
+        style={{ backgroundImage: `url(${record.image})` }}
+        role="img"
+        aria-label={record.name}
+      >
+        {badge ? (
+          <Badge className="absolute left-1.5 top-1.5 border-0 bg-white/90 px-2 py-0.5 text-[0.65rem] text-orange-700 shadow-sm backdrop-blur">
+            {badge}
+          </Badge>
+        ) : null}
       </div>
-      <p className="mt-1 truncate text-xs text-slate-500">
-        {getRecordMeta(kind, record)}
-      </p>
-    </>
+    )
+  }
+
+  return (
+    <div className="relative grid size-20 shrink-0 place-items-center rounded-2xl bg-orange-100 text-orange-700 sm:size-24 [&_svg]:size-9">
+      {formConfigs[kind].icon}
+      {badge ? (
+        <Badge className="absolute left-1.5 top-1.5 border-0 bg-white/90 px-2 py-0.5 text-[0.65rem] text-orange-700 shadow-sm backdrop-blur">
+          {badge}
+        </Badge>
+      ) : null}
+    </div>
   )
 }
 
-function getRecordMeta(kind: RecordKind, record: EditableRecord) {
-  if (kind === "product" && "priceDefault" in record) {
-    return `${record.quantity} stok · Default ${formatCurrency(
-      getProductPrice(record, "default")
-    )} · Reseller ${formatCurrency(getProductPrice(record, "reseller"))} · Online ${formatCurrency(
-      getProductPrice(record, "online")
-    )}`
-  }
+function getRecordBadge(kind: RecordKind, record: EditableRecord) {
+  if (kind === "inventory" && "unitPrice" in record) return record.quantity > 0 ? `${record.quantity} stok` : "Habis"
+  if (kind === "purchase" && "items" in record) return `${record.items?.length ?? 0} bahan`
+  if (kind === "production") return `${record.quantity} item`
+  if (kind === "product" && "priceDefault" in record) return record.quantity > 0 ? `${record.quantity} stok` : "Habis"
+  return null
+}
 
+function RecordContent({ kind, record }: { kind: RecordKind; record: EditableRecord }) {
   if (kind === "inventory" && "unitPrice" in record) {
-    return `${record.quantity} stok · ${formatCurrency(record.unitPrice)} / unit${
-      record.note ? ` · ${record.note}` : ""
-    }`
+    return (
+      <>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">{record.name}</p>
+          {record.note ? <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{record.note}</p> : null}
+        </div>
+        <p className="text-lg font-black tracking-tight text-orange-700">
+          {formatCurrency(record.unitPrice)} / unit
+        </p>
+      </>
+    )
   }
 
   if (kind === "purchase" && "amount" in record && "date" in record) {
-    return `${record.date ?? record.createdAt.slice(0, 10)} · ${record.items?.length ?? 0} bahan · ${formatCurrency(
-      record.amount
-    )}${record.note ? ` · ${record.note}` : ""}`
+    return (
+      <>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">{record.name}</p>
+          <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+            {record.date ?? record.createdAt.slice(0, 10)} &middot; {record.items?.length ?? 0} bahan
+            {record.note ? ` · ${record.note}` : ""}
+          </p>
+        </div>
+        <p className="text-lg font-black tracking-tight text-orange-700">
+          {formatCurrency(record.amount)}
+        </p>
+      </>
+    )
   }
 
   if (kind === "production") {
-    return `${record.quantity} item${record.note ? ` · ${record.note}` : ""}`
+    return (
+      <>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">{record.name}</p>
+          {record.note ? <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{record.note}</p> : null}
+        </div>
+        <p className="text-lg font-black tracking-tight text-orange-700">
+          {record.quantity} item
+        </p>
+      </>
+    )
   }
 
-  return `${record.quantity} item · ${"amount" in record ? formatCurrency(record.amount) : ""}${record.note ? ` · ${record.note}` : ""}`
+  return (
+    <>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">{record.name}</p>
+        <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+          {record.quantity} item
+          {"amount" in record ? ` · ${formatCurrency(record.amount)}` : ""}
+          {record.note ? ` · ${record.note}` : ""}
+        </p>
+      </div>
+    </>
+  )
 }
 
 function formatCurrency(value: number) {

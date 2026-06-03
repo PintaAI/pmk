@@ -4,11 +4,13 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
-import { CartDrawer } from "@/components/cart"
+import { CartDrawer, FlyToCartProvider } from "@/components/cart"
 import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
 import { useBtPrint, BtPrintDialog, type BtPreparedState } from "@/components/printer"
 import { isNativeApp } from "@/components/printer"
 import { formatEscPosCurrency, type EscPosReceipt } from "@/lib/escpos-print"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import {
   BottomNav,
   HomeTabContent,
@@ -20,11 +22,20 @@ import {
   type StockContentTab,
   viewConfigs,
 } from "@/components/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { RecordDrawer } from "@/components/form/record-drawer"
 import type { CartItem, CheckoutPayload, EditableRecord, EntryValues, PaymentMethod, PriceKind, RecordKind, ViewKey } from "@/components/form/types"
 import { formatCurrency, getCartRows, getCartSummary, getProductPrice } from "@/components/form/helpers"
 import { paymentMethodLabels } from "@/components/form/constants"
 import { NewProductDialog } from "@/components/form/new-product-dialog"
+import { SettingsIcon } from "lucide-react"
 import { getDrawerKinds, type BusinessMetrics } from "@/components/form/record-helpers"
 import { HeroSummary } from "@/components/hero-summary"
 import { deleteInventoryItem, getInventoryItems, saveInventoryItem } from "@/actions/business/inventory"
@@ -137,7 +148,7 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
       prices,
     }: {
       name: string
-      prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; note?: string }
+      prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; image?: string; note?: string }
     }) => createProductKind(name, prices),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.products })
@@ -314,7 +325,7 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
 
   const submitProductKind = async (
     name: string,
-    prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; note?: string }
+    prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; image?: string; note?: string }
   ) => {
     await productKindMutation.mutateAsync({ name, prices })
     setIsProductDialogOpen(false)
@@ -329,73 +340,85 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
   }
 
   return (
-    <main className="min-h-svh bg-[#fffaf1] text-slate-950">
-      <div className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 px-4 pb-32 pt-4">
-        {activeView !== "home" && <TabHeader view={view} />}
-
-        {activeView === "home" && (
-          <>
-            <HeroSummary metrics={initialDashboard} />
-            <HomeTabContent metrics={initialDashboard} />
-          </>
-        )}
-
-        {activeView === "sales" && (
-          <SalesTabContent
-            products={products}
-            cart={cart}
-            priceKind={salePriceKind}
-            onPriceKindChange={setSalePriceKind}
-            onChangeQuantity={setCartQuantity}
-          />
-        )}
-
-        {activeView === "stock" && (
-          <StockTabContent
-            stockRecords={products}
-            productionRecords={productions}
-            activeTab={stockTab}
-            onTabChange={setStockTab}
-            onAddProductKind={openProductDialog}
-            onAddProduction={() => openNewRecord("production")}
-            onEdit={(record) => openEditRecord("product", record)}
-            onDelete={(id) => deleteRecord(stockTab === "production" ? "production" : "product", id)}
-          />
-        )}
-
-        {activeView === "inventory" && (
-          <InventoryTabContent
-            inventoryRecords={inventoryItems}
-            purchaseRecords={purchases}
-            activeTab={inventoryTab}
-            onTabChange={setInventoryTab}
-            onAddInventory={() => openNewRecord("inventory")}
-            onAddPurchase={() => openNewRecord("purchase")}
-            onEdit={(record) => openEditRecord("inventory", record)}
-            onDelete={(id) => deleteRecord(inventoryTab === "purchase" ? "purchase" : "inventory", id)}
-          />
-        )}
-      </div>
-
-      <BottomNav
+    <FlyToCartProvider>
+    <SidebarProvider defaultOpen={true}>
+      <AppSidebar
         value={activeView}
         cartQuantity={cartQuantity}
-        actionLabel={
-          activeView === "home"
-            ? "Buka menu cepat"
-            : activeView === "stock"
-              ? stockTab === "production"
-                ? "Produksi baru"
-                : "Tambah katalog pempek"
-              : activeView === "inventory"
-                ? inventoryTab === "purchase"
-                  ? "Belanja baru"
-                  : "Tambah bahan"
-                : undefined
-        }
         onChange={setActiveView}
         onAdd={openPrimaryAction}
       />
+      <SidebarInset className="min-h-svh bg-[#fffaf1]">
+        <div className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 px-4 pb-32 pt-4 md:max-w-4xl md:pb-8 lg:max-w-5xl xl:max-w-6xl">
+          {activeView !== "home" && <TabHeader view={view} />}
+
+          {activeView === "home" && (
+            <>
+              <HeroSummary metrics={initialDashboard} />
+              <HomeTabContent metrics={initialDashboard} />
+            </>
+          )}
+
+          {activeView === "sales" && (
+            <SalesTabContent
+              products={products}
+              cart={cart}
+              priceKind={salePriceKind}
+              onPriceKindChange={setSalePriceKind}
+              onChangeQuantity={setCartQuantity}
+            />
+          )}
+
+          {activeView === "stock" && (
+            <StockTabContent
+              stockRecords={products}
+              productionRecords={productions}
+              inventoryItems={inventoryItems}
+              activeTab={stockTab}
+              onTabChange={setStockTab}
+              onAddProductKind={openProductDialog}
+              onAddProduction={() => openNewRecord("production")}
+              onEdit={(record) => openEditRecord("product", record)}
+              onDelete={(id) => deleteRecord(stockTab === "production" ? "production" : "product", id)}
+            />
+          )}
+
+          {activeView === "inventory" && (
+            <InventoryTabContent
+              inventoryRecords={inventoryItems}
+              purchaseRecords={purchases}
+              activeTab={inventoryTab}
+              onTabChange={setInventoryTab}
+              onAddInventory={() => openNewRecord("inventory")}
+              onAddPurchase={() => openNewRecord("purchase")}
+              onEdit={(record) => openEditRecord("inventory", record)}
+              onDelete={(id) => deleteRecord(inventoryTab === "purchase" ? "purchase" : "inventory", id)}
+            />
+          )}
+        </div>
+      </SidebarInset>
+
+      <div className="md:hidden">
+        <BottomNav
+          value={activeView}
+          cartQuantity={cartQuantity}
+          actionLabel={
+            activeView === "home"
+              ? "Buka menu cepat"
+              : activeView === "stock"
+                ? stockTab === "production"
+                  ? "Produksi baru"
+                  : "Tambah katalog pempek"
+                : activeView === "inventory"
+                  ? inventoryTab === "purchase"
+                    ? "Belanja baru"
+                    : "Tambah bahan"
+                  : undefined
+          }
+          onChange={setActiveView}
+          onAdd={openPrimaryAction}
+        />
+      </div>
 
       <QuickActionsDrawer
         open={isQuickActionsOpen}
@@ -469,11 +492,14 @@ export function PempekWorkspace({ initialDashboard }: { initialDashboard: Busine
           }
         }}
       />
-    </main>
+    </SidebarProvider>
+    </FlyToCartProvider>
   )
 }
 
 function TabHeader({ view }: { view: (typeof viewConfigs)[ViewKey] }) {
+  const [open, setOpen] = React.useState(false)
+
   return (
     <header className="m-0 bg-[#fffaf1] p-0 text-slate-950">
       <div className="flex items-start justify-between gap-4">
@@ -482,11 +508,58 @@ function TabHeader({ view }: { view: (typeof viewConfigs)[ViewKey] }) {
             {view.title}
           </h1>
         </div>
-        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-700 [&_svg]:size-4">
-          {view.icon}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Pengaturan"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-700 transition hover:bg-orange-200 active:scale-95 [&_svg]:size-4"
+            onClick={() => setOpen(true)}
+          >
+            <SettingsIcon />
+          </button>
+          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-700 [&_svg]:size-4">
+            {view.icon}
+          </div>
         </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pengaturan</DialogTitle>
+            <DialogDescription>Konfigurasi aplikasi dan preferensi bisnis.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <PlaceholderSetting
+              label="Nama bisnis"
+              description="Nama toko atau merek yang muncul di struk dan laporan."
+            />
+            <PlaceholderSetting
+              label="Mata uang"
+              description="Satuan mata uang untuk harga dan laporan keuangan."
+            />
+            <PlaceholderSetting
+              label="Notifikasi stok"
+              description="Peringatan ketika stok produk menipis."
+            />
+            <PlaceholderSetting
+              label="Cetak otomatis"
+              description="Cetak struk secara otomatis setelah checkout."
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
+  )
+}
+
+function PlaceholderSetting({ label, description }: { label: string; description: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-sm font-medium text-slate-950">{label}</p>
+      <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+      <p className="mt-2 text-xs italic text-slate-400">— Belum tersedia —</p>
+    </div>
   )
 }
 

@@ -34,10 +34,10 @@ export async function saveSale(values: EntryValues, id?: string) {
 
   if (id) {
     await prisma.sale.update({ where: { id }, data })
-    await logActivity("sale", "updated", `Updated sale "${name}"`, id)
+    await logActivity("sale", "updated", `Penjualan diperbarui "${name}"`, id)
   } else {
     const sale = await prisma.sale.create({ data })
-    await logActivity("sale", "created", `Created sale "${name}"`, sale.id)
+    await logActivity("sale", "created", `Penjualan dibuat "${name}"`, sale.id)
   }
 
   refreshHome()
@@ -50,6 +50,9 @@ export async function checkoutCart(payload: CheckoutPayload) {
   if (requestedItems.length === 0) return
 
   let saleItemsCount = 0
+  let saleAmount = 0
+  let saleChange = 0
+  let soldItems: Array<{ name: string; quantity: number; unitPrice: number; amount: number }> = []
 
   await prisma.$transaction(async (tx) => {
     const products = await tx.product.findMany({
@@ -82,6 +85,14 @@ export async function checkoutCart(payload: CheckoutPayload) {
 
     const total = saleItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
     const change = amountPaid > total ? amountPaid - total : 0
+    saleAmount = total
+    saleChange = change
+    soldItems = saleItems.map((item) => ({
+      name: item.product.name,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      amount: item.unitPrice * item.quantity,
+    }))
 
     await tx.sale.create({
       data: {
@@ -119,13 +130,20 @@ export async function checkoutCart(payload: CheckoutPayload) {
     )
   })
 
-  await logActivity("sale", "checked_out", `Checked out cart (${saleItemsCount} items) — ${paymentMethod}`)
+  await logActivity("sale", "checked_out", `Checkout kasir (${saleItemsCount} item) — ${paymentMethod}`, undefined, {
+    amount: saleAmount,
+    amountPaid,
+    change: saleChange,
+    paymentMethod,
+    quantity: soldItems.reduce((total, item) => total + item.quantity, 0),
+    items: soldItems,
+  })
   refreshHome()
 }
 
 export async function deleteSale(id: string) {
   const sale = await prisma.sale.findUnique({ where: { id }, select: { name: true } })
   await prisma.sale.delete({ where: { id } })
-  await logActivity("sale", "deleted", `Deleted sale "${sale?.name ?? id}"`, id)
+  await logActivity("sale", "deleted", `Penjualan dihapus "${sale?.name ?? id}"`, id)
   refreshHome()
 }

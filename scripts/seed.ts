@@ -267,13 +267,126 @@ async function main() {
         { kind: "inventory", action: "created", description: 'Created inventory item "Telur ayam"', entityId: telur.id, createdAt: createdAt(8) },
         { kind: "inventory", action: "created", description: 'Created inventory item "Bawang putih"', entityId: bawangPutih.id, createdAt: createdAt(8) },
         { kind: "inventory", action: "created", description: 'Created inventory item "Cuko botol"', entityId: cuko.id, createdAt: createdAt(7) },
-        { kind: "purchase", action: "created", description: "Created purchase (3 items: Ikan tenggiri giling, Tepung sagu, Telur ayam)", createdAt: createdAt(6) },
-        { kind: "purchase", action: "created", description: "Created purchase (2 items: Cuko botol, Bawang putih)", createdAt: createdAt(2) },
-        { kind: "production", action: "created", description: 'Created production "Pempek Kapal Selam, Pempek Lenjer"', createdAt: createdAt(5) },
-        { kind: "production", action: "created", description: 'Created production "Pempek Adaan, Pempek Kulit, Tekwan Frozen"', createdAt: createdAt(3) },
-        { kind: "sale", action: "checked_out", description: "Checked out cart (2 items)", entityId: sale1.id, createdAt: createdAt(1) },
-        { kind: "sale", action: "checked_out", description: "Checked out cart (2 items)", entityId: sale2.id, createdAt: createdAt(1) },
-        { kind: "sale", action: "checked_out", description: "Checked out cart (2 items)", entityId: sale3.id, createdAt: new Date() },
+        {
+          kind: "purchase",
+          action: "created",
+          description: "Created purchase (3 items: Ikan tenggiri giling, Tepung sagu, Telur ayam)",
+          metadata: {
+            amount: 2305000,
+            quantity: 54,
+            items: [
+              { name: ikanGiling.name, quantity: 20, unitPrice: 85000, amount: 1700000 },
+              { name: tepungSagu.name, quantity: 25, unitPrice: 18000, amount: 450000 },
+              { name: telur.name, quantity: 9, unitPrice: 17200, amount: 154800 },
+            ],
+          },
+          createdAt: createdAt(6),
+        },
+        {
+          kind: "purchase",
+          action: "created",
+          description: "Created purchase (2 items: Cuko botol, Bawang putih)",
+          metadata: {
+            amount: 450000,
+            quantity: 110,
+            items: [
+              { name: cuko.name, quantity: 100, unitPrice: 3500, amount: 350000 },
+              { name: bawangPutih.name, quantity: 10, unitPrice: 10000, amount: 100000 },
+            ],
+          },
+          createdAt: createdAt(2),
+        },
+        {
+          kind: "production",
+          action: "created",
+          description: 'Created production "Pempek Kapal Selam, Pempek Lenjer"',
+          metadata: {
+            quantity: 78,
+            outputs: [
+              { name: kapalSelam.name, quantity: 28 },
+              { name: lenjer.name, quantity: 50 },
+            ],
+            ingredients: [
+              { name: ikanGiling.name, quantity: 8 },
+              { name: tepungSagu.name, quantity: 12 },
+              { name: telur.name, quantity: 36 },
+            ],
+          },
+          createdAt: createdAt(5),
+        },
+        {
+          kind: "production",
+          action: "created",
+          description: 'Created production "Pempek Adaan, Pempek Kulit, Tekwan Frozen"',
+          metadata: {
+            quantity: 95,
+            outputs: [
+              { name: adaan.name, quantity: 40 },
+              { name: kulit.name, quantity: 35 },
+              { name: tekwan.name, quantity: 20 },
+            ],
+            ingredients: [
+              { name: ikanGiling.name, quantity: 6 },
+              { name: tepungSagu.name, quantity: 9 },
+              { name: bawangPutih.name, quantity: 2 },
+            ],
+          },
+          createdAt: createdAt(3),
+        },
+        {
+          kind: "sale",
+          action: "checked_out",
+          description: "Checked out cart (2 items)",
+          entityId: sale1.id,
+          metadata: {
+            amount: 114000,
+            amountPaid: 114000,
+            change: 0,
+            paymentMethod: "cash",
+            quantity: 8,
+            items: [
+              { name: kapalSelam.name, quantity: 3, unitPrice: 18000, amount: 54000 },
+              { name: lenjer.name, quantity: 5, unitPrice: 12000, amount: 60000 },
+            ],
+          },
+          createdAt: createdAt(1),
+        },
+        {
+          kind: "sale",
+          action: "checked_out",
+          description: "Checked out cart (2 items)",
+          entityId: sale2.id,
+          metadata: {
+            amount: 110000,
+            amountPaid: 110000,
+            change: 0,
+            paymentMethod: "cash",
+            quantity: 22,
+            items: [
+              { name: adaan.name, quantity: 12, unitPrice: 5000, amount: 60000 },
+              { name: kulit.name, quantity: 10, unitPrice: 5000, amount: 50000 },
+            ],
+          },
+          createdAt: createdAt(1),
+        },
+        {
+          kind: "sale",
+          action: "checked_out",
+          description: "Checked out cart (2 items)",
+          entityId: sale3.id,
+          metadata: {
+            amount: 140000,
+            amountPaid: 140000,
+            change: 0,
+            paymentMethod: "cash",
+            quantity: 6,
+            items: [
+              { name: tekwan.name, quantity: 4, unitPrice: 25000, amount: 100000 },
+              { name: kapalSelam.name, quantity: 2, unitPrice: 20000, amount: 40000 },
+            ],
+          },
+          createdAt: new Date(),
+        },
       ],
     });
   });

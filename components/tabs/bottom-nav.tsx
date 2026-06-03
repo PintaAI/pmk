@@ -29,6 +29,7 @@ export function BottomNav({ value, cartQuantity, actionLabel, onChange, onAdd }:
         <button
           type="button"
           aria-label={buttonLabel}
+          data-cart-target
           className="relative -mt-6 flex size-14 items-center justify-center justify-self-center rounded-full border-2 border-orange-500/20 bg-orange-600 text-white shadow-lg ring-6 ring-white/90 transition active:scale-95"
           onClick={onAdd}
         >

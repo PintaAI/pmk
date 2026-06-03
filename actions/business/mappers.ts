@@ -52,6 +52,7 @@ export function mapProduct(product: {
   priceDefault: number
   priceReseller: number
   priceOnline: number
+  image: string | null
   note: string | null
   createdAt: Date
   updatedAt: Date
@@ -63,6 +64,7 @@ export function mapProduct(product: {
     priceDefault: product.priceDefault,
     priceReseller: product.priceReseller,
     priceOnline: product.priceOnline,
+    image: product.image ?? undefined,
     note: product.note ?? undefined,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),

@@ -19,6 +19,7 @@ export async function saveProduct(values: EntryValues, id?: string) {
     priceDefault,
     priceReseller: toNumber(values.priceReseller) || priceDefault,
     priceOnline: toNumber(values.priceOnline) || priceDefault,
+    image: values.image.trim() || null,
     note: values.note.trim() || null,
   }
 
@@ -26,10 +27,10 @@ export async function saveProduct(values: EntryValues, id?: string) {
 
   if (id) {
     await prisma.product.update({ where: { id }, data })
-    await logActivity("product", "updated", `Updated product "${data.name}"`, id)
+    await logActivity("product", "updated", `Produk diperbarui "${data.name}"`, id)
   } else {
     const product = await prisma.product.create({ data })
-    await logActivity("product", "created", `Created product "${data.name}"`, product.id)
+    await logActivity("product", "created", `Produk dibuat "${data.name}"`, product.id)
   }
 
   refreshHome()
@@ -37,7 +38,7 @@ export async function saveProduct(values: EntryValues, id?: string) {
 
 export async function createProductKind(
   name: string,
-  prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; note?: string }
+  prices?: { priceDefault?: number; priceReseller?: number; priceOnline?: number; quantity?: number; image?: string; note?: string }
 ) {
   const productName = name.trim()
 
@@ -52,17 +53,18 @@ export async function createProductKind(
       priceDefault,
       priceReseller: prices?.priceReseller ?? priceDefault,
       priceOnline: prices?.priceOnline ?? priceDefault,
+      image: prices?.image?.trim() || null,
       note: prices?.note || "Jenis pempek baru",
     },
   })
 
-  await logActivity("product", "created", `Created product "${productName}"`, product.id)
+  await logActivity("product", "created", `Produk dibuat "${productName}"`, product.id)
   refreshHome()
 }
 
 export async function deleteProduct(id: string) {
   const product = await prisma.product.findUnique({ where: { id }, select: { name: true } })
   await prisma.product.delete({ where: { id } })
-  await logActivity("product", "deleted", `Deleted product "${product?.name ?? id}"`, id)
+  await logActivity("product", "deleted", `Produk dihapus "${product?.name ?? id}"`, id)
   refreshHome()
 }

@@ -31,6 +31,9 @@ export async function createProduction(values: EntryValues) {
   if (ingredients.length === 0 || outputs.length === 0) return
 
   let productionName = "Produksi"
+  let productionId: string | undefined
+  let outputMetadata: Array<{ name: string; quantity: number }> = []
+  let ingredientMetadata: Array<{ name: string; quantity: number }> = []
 
   await prisma.$transaction(async (tx) => {
     const inventoryItems = await tx.inventoryItem.findMany({
@@ -53,8 +56,16 @@ export async function createProduction(values: EntryValues) {
       .join(", ")
 
     productionName = outputNames || "Produksi"
+    outputMetadata = outputs.map((output) => ({
+      name: products.find((product) => product.id === output.productId)?.name ?? output.productId,
+      quantity: output.quantity,
+    }))
+    ingredientMetadata = ingredients.map((ingredient) => ({
+      name: inventoryItems.find((item) => item.id === ingredient.inventoryItemId)?.name ?? ingredient.inventoryItemId,
+      quantity: ingredient.quantity,
+    }))
 
-    await tx.production.create({
+    const production = await tx.production.create({
       data: {
         name: productionName,
         quantity: outputs.reduce((total, output) => total + output.quantity, 0),
@@ -63,6 +74,7 @@ export async function createProduction(values: EntryValues) {
         outputs: { create: outputs },
       },
     })
+    productionId = production.id
 
     await Promise.all([
       ...ingredients.map((ingredient) =>
@@ -80,13 +92,48 @@ export async function createProduction(values: EntryValues) {
     ])
   })
 
-  await logActivity("production", "created", `Created production "${productionName}"`)
+  await logActivity("production", "created", `Produksi dibuat "${productionName}"`, productionId, {
+    quantity: outputMetadata.reduce((total, item) => total + item.quantity, 0),
+    outputs: outputMetadata,
+    ingredients: ingredientMetadata,
+  })
   refreshHome()
 }
 
 export async function deleteProduction(id: string) {
-  const production = await prisma.production.findUnique({ where: { id }, select: { name: true } })
-  await prisma.production.delete({ where: { id } })
-  await logActivity("production", "deleted", `Deleted production "${production?.name ?? id}"`, id)
+  const production = await prisma.$transaction(async (tx) => {
+    const existingProduction = await tx.production.findUnique({
+      where: { id },
+      include: { ingredients: true, outputs: true },
+    })
+    if (!existingProduction) return null
+
+    await Promise.all([
+      ...existingProduction.ingredients.map((ingredient) =>
+        tx.inventoryItem.update({
+          where: { id: ingredient.inventoryItemId },
+          data: { quantity: { increment: ingredient.quantity } },
+        })
+      ),
+      ...existingProduction.outputs.map(async (output) => {
+        const product = await tx.product.findUnique({ where: { id: output.productId } })
+        if (!product) return
+
+        await tx.product.update({
+          where: { id: product.id },
+          data: { quantity: Math.max(0, product.quantity - output.quantity) },
+        })
+      }),
+    ])
+
+    await tx.production.delete({ where: { id } })
+    return existingProduction
+  })
+
+  await logActivity("production", "deleted", `Produksi dihapus "${production?.name ?? id}"`, id, production ? {
+    quantity: production.quantity,
+    outputs: production.outputs.map((item) => ({ name: item.productId, quantity: item.quantity })),
+    ingredients: production.ingredients.map((item) => ({ name: item.inventoryItemId, quantity: item.quantity })),
+  } : undefined)
   refreshHome()
 }

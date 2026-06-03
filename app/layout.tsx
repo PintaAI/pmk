@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PWARegister } from "@/components/pwa-register";
 import { QueryProvider } from "@/components/query-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,7 +45,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </QueryProvider>
         <PWARegister />
       </body>
     </html>

@@ -30,7 +30,7 @@ export function HeroSummary({ metrics }: { metrics: BusinessMetrics }) {
           </Badge>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-orange-200/70 pt-3">
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-orange-200/70 pt-3 md:grid-cols-4">
           <HeroMetric label="Omzet" value={formatCurrency(metrics.revenue)} tone="warm" />
           <HeroMetric label="Belanja" value={formatCurrency(metrics.expense)} />
           <HeroMetric label="Terjual" value={`${metrics.sold} porsi`} />

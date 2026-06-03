@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCurrency, getProductPrice, getCartSummary, getCartRows } from "@/components/form/helpers"
 import { priceKindLabels, priceKinds } from "@/components/form/constants"
 import type { CartItem, PriceKind, ProductRecord } from "@/components/form/types"
+import { useFlyToCart } from "./fly-to-cart"
 
 type CashierCardProps = {
   products: ProductRecord[]
@@ -29,9 +30,10 @@ export function CashierCard({
   onChangeQuantity,
 }: CashierCardProps) {
   const cartQuantity = getCartSummary(getCartRows(cart, products)).quantity
+  const { flyToCart } = useFlyToCart()
 
   return (
-    <Tabs value={priceKind} onValueChange={(value) => onPriceKindChange(value as PriceKind)}>
+    <Tabs value={priceKind} onValueChange={(value) => onPriceKindChange(value as PriceKind)} className="flex min-h-0 flex-1 flex-col">
       <TabsList className="grid h-10 w-full grid-cols-3 rounded-2xl bg-orange-100/70 p-1">
         {priceKinds.map((kind) => (
           <TabsTrigger
@@ -44,7 +46,7 @@ export function CashierCard({
         ))}
       </TabsList>
 
-      <Card className="mt-2 bg-white">
+      <Card className="mt-2 flex max-h-[calc(100svh-15rem)] min-h-0 flex-1 flex-col bg-white md:max-h-[calc(100svh-10rem)]">
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -55,13 +57,13 @@ export function CashierCard({
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="min-h-0 flex-1">
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-orange-200 p-5 text-center text-sm text-slate-500">
               Belum ada stok produk. Tambahkan produk di tab Stok dulu.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid max-h-full min-h-0 grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 md:grid-cols-3">
               {products.map((product) => {
                 const cartItem = cart.find((item) => item.productId === product.id && item.priceKind === priceKind)
                 const quantity = cartItem?.quantity ?? 0
@@ -72,30 +74,19 @@ export function CashierCard({
                 const isMaxedOut = quantity + reservedQuantity >= product.quantity
 
                 return (
-                  <button
-                    type="button"
+                  <CashierProductCard
                     key={product.id}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isOutOfStock || isMaxedOut}
-                    onClick={() => onChangeQuantity(product.id, priceKind, quantity + 1)}
-                  >
-                    <div className="grid size-10 place-items-center rounded-2xl bg-orange-100 text-orange-700">
-                      <ShoppingCartIcon className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-medium">{product.name}</p>
-                        {isOutOfStock && <Badge variant="secondary">Habis</Badge>}
-                        {!isOutOfStock && isMaxedOut && <Badge variant="secondary">Maks</Badge>}
-                      </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        Stok {product.quantity - reservedQuantity} · {formatCurrency(getProductPrice(product, priceKind))} / porsi
-                      </p>
-                    </div>
-                    <Badge className="border-0 bg-orange-100 text-orange-700">
-                      {quantity}x
-                    </Badge>
-                  </button>
+                    product={product}
+                    priceKind={priceKind}
+                    quantity={quantity}
+                    availableStock={product.quantity - reservedQuantity}
+                    isDisabled={isOutOfStock || isMaxedOut}
+                    statusLabel={isOutOfStock ? "Habis" : isMaxedOut ? "Maks" : `${product.quantity - reservedQuantity} stok`}
+                    onAdd={(element) => {
+                      flyToCart(element)
+                      onChangeQuantity(product.id, priceKind, quantity + 1)
+                    }}
+                  />
                 )
               })}
             </div>
@@ -103,5 +94,66 @@ export function CashierCard({
         </CardContent>
       </Card>
     </Tabs>
+  )
+}
+
+function CashierProductCard({
+  product,
+  priceKind,
+  quantity,
+  availableStock,
+  isDisabled,
+  statusLabel,
+  onAdd,
+}: {
+  product: ProductRecord
+  priceKind: PriceKind
+  quantity: number
+  availableStock: number
+  isDisabled: boolean
+  statusLabel: string
+  onAdd: (element: HTMLElement) => void
+}) {
+  return (
+    <button
+      type="button"
+      className="group overflow-hidden rounded-3xl border border-orange-100 bg-[#fff8ed] text-left shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+      disabled={isDisabled}
+      onClick={(event) => onAdd(event.currentTarget)}
+    >
+      <div className="relative aspect-square overflow-hidden bg-orange-100">
+        {product.image ? (
+          <div
+            className="size-full bg-cover bg-center transition duration-300 group-hover:scale-105"
+            style={{ backgroundImage: `url(${product.image})` }}
+            role="img"
+            aria-label={product.name}
+          />
+        ) : (
+          <div className="grid size-full place-items-center text-orange-700">
+            <ShoppingCartIcon className="size-9" />
+          </div>
+        )}
+        <Badge className="absolute left-2 top-2 border-0 bg-white/90 text-orange-700 shadow-sm">
+          {statusLabel}
+        </Badge>
+        {quantity > 0 ? (
+          <Badge className="absolute bottom-2 right-2 border-0 bg-orange-600 text-white shadow-sm">
+            {quantity}x
+          </Badge>
+        ) : null}
+      </div>
+      <div className="space-y-2 p-3">
+        <div>
+          <p className="line-clamp-2 text-sm font-semibold leading-tight text-slate-950">
+            {product.name}
+          </p>
+          {product.note ? <p className="mt-1 truncate text-xs text-slate-500">{product.note}</p> : null}
+        </div>
+        <p className="text-base font-black tracking-tight text-orange-700">
+          {formatCurrency(getProductPrice(product, priceKind))}
+        </p>
+      </div>
+    </button>
   )
 }
