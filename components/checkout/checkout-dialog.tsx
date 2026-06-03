@@ -42,13 +42,15 @@ export function CheckoutDialog({
 }: CheckoutDialogProps) {
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("cash")
   const [amountPaid, setAmountPaid] = React.useState(0)
+  const [prevOpen, setPrevOpen] = React.useState(open)
 
-  React.useEffect(() => {
-    if (open) {
-      setPaymentMethod("cash")
-      setAmountPaid(0)
-    }
-  }, [open])
+  if (open && !prevOpen) {
+    setPaymentMethod("cash")
+    setAmountPaid(0)
+  }
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+  }
 
   const change = amountPaid > total ? amountPaid - total : 0
   const isCash = paymentMethod === "cash"

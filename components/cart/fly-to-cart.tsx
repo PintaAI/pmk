@@ -23,11 +23,7 @@ export function useFlyToCart() {
 
 export function FlyToCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<FlyingItem[]>([])
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [mounted] = React.useState(() => typeof document !== "undefined")
 
   const flyToCart = React.useCallback((sourceElement: HTMLElement) => {
     const srcRect = sourceElement.getBoundingClientRect()
