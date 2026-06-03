@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { PlusIcon } from "lucide-react"
 import { uploadProductImage } from "@/actions/business/product-images"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field } from "./field"
 import type { EntryValues, ProductRecord } from "./types"
@@ -140,6 +142,15 @@ export function ProductForm({ record, onSubmit }: ProductFormProps) {
           onChange={(event) => patchValues({ note: event.target.value })}
         />
       </Field>
+
+      <Button
+        type="submit"
+        className="w-full bg-orange-600 text-white hover:bg-orange-700"
+        disabled={!values.name.trim() || isUploading}
+      >
+        <PlusIcon />
+        {record ? "Simpan edit" : "Simpan produk"}
+      </Button>
     </form>
   )
 }
