@@ -26,13 +26,13 @@ export async function uploadProductImage(formData: FormData) {
   }
 
   const blob = await put(`products/${crypto.randomUUID()}-${safeFileName(file.name)}`, file, {
-    access: "public",
+    access: "private",
     addRandomSuffix: true,
     contentType: file.type,
     token,
   })
 
-  return blob.url
+  return `/api/product-images?pathname=${encodeURIComponent(blob.pathname)}`
 }
 
 function safeFileName(fileName: string) {
