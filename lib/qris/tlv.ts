@@ -7,15 +7,16 @@ export type TLVElement = {
 
 export function parseTLV(input: string): TLVElement[] {
   const elements: TLVElement[] = []
+  const bytes = new TextEncoder().encode(input)
   let index = 0
 
-  while (index < input.length) {
-    if (index + 4 > input.length) {
+  while (index < bytes.length) {
+    if (index + 4 > bytes.length) {
       throw new Error("Payload TLV tidak lengkap")
     }
 
-    const tag = input.slice(index, index + 2)
-    const lengthText = input.slice(index + 2, index + 4)
+    const tag = decodeBytes(bytes, index, index + 2)
+    const lengthText = decodeBytes(bytes, index + 2, index + 4)
     const length = Number(lengthText)
 
     if (!/^\d{2}$/.test(tag) || !/^\d{2}$/.test(lengthText) || Number.isNaN(length)) {
@@ -25,11 +26,11 @@ export function parseTLV(input: string): TLVElement[] {
     const valueStart = index + 4
     const valueEnd = valueStart + length
 
-    if (valueEnd > input.length) {
+    if (valueEnd > bytes.length) {
       throw new Error(`Nilai tag ${tag} melebihi panjang payload`)
     }
 
-    const value = input.slice(valueStart, valueEnd)
+    const value = decodeBytes(bytes, valueStart, valueEnd)
     const element: TLVElement = { tag, length, value }
 
     if (isNestedTag(tag)) {
@@ -51,7 +52,7 @@ export function buildTLV(elements: TLVElement[]): string {
   return elements
     .map((element) => {
       const value = element.children ? buildTLV(element.children) : element.value
-      const length = value.length.toString().padStart(2, "0")
+      const length = new TextEncoder().encode(value).length.toString().padStart(2, "0")
       return `${element.tag}${length}${value}`
     })
     .join("")
@@ -68,4 +69,8 @@ export function withoutTags(elements: TLVElement[], tags: string[]) {
 function isNestedTag(tag: string) {
   const numericTag = Number(tag)
   return (numericTag >= 26 && numericTag <= 51) || tag === "62" || tag === "64"
+}
+
+function decodeBytes(bytes: Uint8Array, start: number, end: number) {
+  return new TextDecoder().decode(bytes.slice(start, end))
 }

@@ -81,5 +81,11 @@ export function validateQRIS(input: string): QRISValidationResult {
 }
 
 export function normalizeQRIS(input: string) {
-  return input.trim().replace(/\s/g, "")
+  const payload = input
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .trim()
+
+  const startIndex = payload.indexOf("000201")
+  return startIndex === -1 ? payload : payload.slice(startIndex)
 }
