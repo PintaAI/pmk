@@ -6,7 +6,12 @@ const maxImageSize = 4 * 1024 * 1024
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"])
 
 export async function uploadProductImage(formData: FormData) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
   const file = formData.get("file")
+
+  if (!token) {
+    throw new Error("BLOB_READ_WRITE_TOKEN belum dikonfigurasi.")
+  }
 
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("Pilih file gambar terlebih dahulu.")
@@ -24,6 +29,7 @@ export async function uploadProductImage(formData: FormData) {
     access: "public",
     addRandomSuffix: true,
     contentType: file.type,
+    token,
   })
 
   return blob.url
