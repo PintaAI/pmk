@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 
 import { CartDrawer, FlyToCartProvider } from "@/components/cart"
 import { CheckoutDialog, ThermalReceipt, type ThermalReceiptData } from "@/components/checkout"
+import { QrisSettings } from "@/components/qris/qris-settings"
 import { useBtPrint, BtPrintDialog, type BtPreparedState } from "@/components/printer"
 import { isNativeApp } from "@/components/printer"
 import { formatEscPosCurrency, type EscPosReceipt } from "@/lib/escpos-print"
@@ -28,11 +29,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { RecordDrawer } from "@/components/form/record-drawer"
 import type { CartItem, CheckoutPayload, EditableRecord, EntryValues, PaymentMethod, PriceKind, RecordKind, ViewKey } from "@/components/form/types"
-import { formatCurrency, getCartRows, getCartSummary, getProductPrice } from "@/components/form/helpers"
+import { getCartRows, getCartSummary, getProductPrice } from "@/components/form/helpers"
 import { paymentMethodLabels } from "@/components/form/constants"
 import { NewProductDialog } from "@/components/form/new-product-dialog"
 import { SettingsIcon } from "lucide-react"
@@ -530,6 +530,7 @@ function TabHeader({ view }: { view: (typeof viewConfigs)[ViewKey] }) {
             <DialogDescription>Konfigurasi aplikasi dan preferensi bisnis.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <QrisSettings />
             <PlaceholderSetting
               label="Nama bisnis"
               description="Nama toko atau merek yang muncul di struk dan laporan."
